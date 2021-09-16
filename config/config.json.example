@@ -1,0 +1,43 @@
+{
+    "schedule_hours": 6,
+
+    "channel_username": "MoviesTorrentsReleases",
+    "filters": {
+	"from_year": 2020,
+	"filter_list": [ {
+		"imdb_range": [5.5, 5.99],
+		"imdb_people": 100,
+		"include_genres": [ "Horror", "Sci-Fi" ],
+		"exclude_genres": [ "Family", "Biography", "Comedy", "Animation", "Sports", "Documentary", "Biography", "Short" ],
+		"exclude_providers": [ "Netflix" ],
+		"exclude_providers_for_country": "AR"
+	}, {
+		"imdb_range": [6, 6.99],
+		"imdb_people": 500,
+		"include_genres": [ "Suspense","Thriller", "Horror", "Mystery", "Action", "Adventure", "Crime", "Sci-Fi" ],
+		"exclude_genres": [ "Family", "Biography", "Animation", "Sports", "Documentary", "Short" ],
+		"exclude_providers": [ "Netflix" ],
+		"exclude_providers_for_country": "AR"
+	}, {
+		"imdb_range": [7, 100],
+		"imdb_people": 1000,
+		"include_genres": [],
+		"exclude_genres": [ "Biography", "Animation", "Sports", "Documentary", "Short" ],
+		"exclude_providers": [ "Netflix" ],
+		"exclude_providers_for_country": "AR"
+    	}
+      ]
+    },
+    "trakt": {
+        "base_url": "https://api.trakt.tv",
+        "id": "Your trakt ID",
+        "secret": "Your secret",
+        "list": "list to add movies",
+	"user": "Your user"
+    },
+   "tmdb": {
+	"api_key": "The TMDb API Key",
+	"user": "Your user",
+	"password": "The password"
+   }
+}

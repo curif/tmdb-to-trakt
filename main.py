@@ -6,7 +6,6 @@ from typing import Optional
 
 from trakt import Trakt
 
-from pycliarr.api import RadarrCli
 import schedule
 import time
 
@@ -29,7 +28,7 @@ from tmdbv3api.as_obj import AsObj
 
 from threading import Condition
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
 
 config = {}
 
@@ -201,7 +200,7 @@ class Application(object):
             }
             logging.info("Add {} movies to list [{}]".format( len(tmdb_list), config["trakt"]["list"]))
             logging.debug(pprint.pformat(to_add))
-            result = TraktXXXXXXXXXXX['users/*/lists/*'].add(
+            result = Trakt['users/*/lists/*'].add(
                                 config["trakt"]["user"],
                                 config["trakt"]["list"],
                                 to_add,
@@ -211,9 +210,6 @@ class Application(object):
             logging.info("not found: {}".format(pprint.pformat(result["not_found"]["movies"])))
         else:
             logging.info("No new movies to add.")
-        
-        logging.debug("telegram disconnect.")
-        client.disconnect() 
         
         logging.info("Finished =====")
 
@@ -301,7 +297,6 @@ if __name__ == '__main__':
     with open("config/config.json", 'r') as file:
         config  = json.load(file)
         #print(config)
-
     
     Trakt.base_url = config["trakt"]["base_url"]
 

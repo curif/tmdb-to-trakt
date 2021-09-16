@@ -2,4 +2,3 @@ trakt.py
 pycliarr==1.0.14
 schedule
 tmdbv3api
-telethon

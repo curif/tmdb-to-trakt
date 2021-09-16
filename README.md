@@ -1,9 +1,9 @@
 # tmdb-to-trakt
-Explore new movies in TMDB and add them to a Trakt list based in a configured criteria
+Explore new movies in TMDB and add them to a Trakt list based on a configured criteria
 
 # Instalation
 
-Download the code and copy to a directory of your preference. 
+Download the code and copy it to a directory of your preference. 
 
 # Requeriments
 
@@ -92,7 +92,7 @@ The `trakt.py` library needs to connect this application to Trakt, and to give p
 
 Goto https://trakt.tv/oauth/applications/new
 
-Copy the id and secret to your config.json.
+Copy the id and secret to your `config.json`.
 
 # TMDb
 

@@ -119,20 +119,6 @@ A `dockerfile` is provided in order to use the program under docker.
 
 `docker build -t telegram-to-trakt .`
 
-## create session
-
-To create the session file using docker:
-
-```bash
-sudo docker run -v $(pwd)/telegram-to-trakt/config:/usr/src/app/config -it telegram-to-trakt bash
-root@8e1193bedf7f:/usr/src/app# python create_session.py
-connect to telegram API
-Please enter the code you received: xxxxx
-Signed in successfully as Curif
-session created
-
-```
-
 ## docker-compose example
 
 ```yaml

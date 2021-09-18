@@ -144,6 +144,7 @@ class Application(object):
         tmdb_list = []        
         genres = genre.movie_list()
         discover = Discover()
+        excluded_count = 0
 
         for fil in config["filters"]["filter_list"]:
             discovered = discover.discover_movies( {
@@ -152,6 +153,7 @@ class Application(object):
                 "vote_average.gte": fil["imdb_range"][0],  
                 "vote_average.lte": fil["imdb_range"][1],  
                 })
+            logging.info("{} movies disovered in votes range: {}".format(len(discovered), fil["imdb_range"]))
             for movie in discovered:
                 #ext_id = mov.external_ids(movie.id)
                 #if "imdb" not in ext_id:
@@ -159,6 +161,7 @@ class Application(object):
 
                 if movie.id in tmdb_in_list or movie.id in tmdb_in_watched:
                     logging.debug("{} already watched or marked in the list. Excluded.".format(movie.title))
+                    excluded_count += 1
                     continue
                 
                 movie_genres = [
@@ -171,18 +174,21 @@ class Application(object):
                       and ( len(fil["exclude_genres"]) == 0 or 
                               len(intersection(movie_genres, fil["exclude_genres"])) == 0 )):
                     logging.debug("{} will not be added to the Trakt list because genres don't match: {}".format(movie.title, movie_genres ))
+                    excluded_count += 1
                     continue
 
                 prov = watch_providers()
                 prov_list = prov.providers(movie.id)
                 if fil["exclude_providers_for_country"] not in prov_list["results"]:
                     logging.debug("{} will not be added to the Trakt list because there aren't a country that match configuration: {}".format(movie.title,  fil["exclude_providers_for_country"] ))
+                    excluded_count += 1
                     continue
 
                 comps = [c["provider_name"] for c in prov_list["results"][ fil["exclude_providers_for_country"] ].get("flatrate", None)]
                 if comps:
                     if len(intersection(fil["exclude_providers"], comps)) > 0:
                         logging.debug("{} will not be added to the Trakt list because provider is excluded: {}".format(movie.title, comps))
+                        excluded_count += 1
                         continue
 
                 logging.info("{} will be added to the Trakt list ({}({}) - genres: {} - pop: {} {}/{} - {})".format(
@@ -191,6 +197,7 @@ class Application(object):
                     
                 tmdb_list.append(movie.id)
 
+        logging.info("{} excluded by config filters".format(excluded_count))
         if len(tmdb_list) > 0:
             to_add = { "movies": [ 
                        {"ids": {

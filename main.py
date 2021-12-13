@@ -152,8 +152,9 @@ class Application(object):
                 "vote_count.gte": fil["imdb_people"],
                 "vote_average.gte": fil["imdb_range"][0],  
                 "vote_average.lte": fil["imdb_range"][1],  
+                "sort_by": "release_date.desc",  
                 })
-            logging.info("{} movies disovered in votes range: {}".format(len(discovered), fil["imdb_range"]))
+            logging.info("{} movies discovered in votes range: {}".format(len(discovered), fil["imdb_range"]))
             for movie in discovered:
                 #ext_id = mov.external_ids(movie.id)
                 #if "imdb" not in ext_id:

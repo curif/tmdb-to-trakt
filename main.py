@@ -28,7 +28,7 @@ from tmdbv3api.as_obj import AsObj
 
 from threading import Condition
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(message)s', level=logging.DEBUG)
 
 config = {}
 
@@ -98,7 +98,7 @@ class Application(object):
             exit(1)
      
         #STrakt.configuration.oauth.from_response(self.authorization)   
-        Trakt.configuration.defaults.oauth.from_response(self.authorization)
+        Trakt.configuration.defaults.oauth.from_response(self.authorization, refresh=True)
         tmdb = TMDb()
         tmdb.api_key = config["tmdb"]["api_key"]
         auth = Authentication(username=config["tmdb"]["user"], password=config["tmdb"]["password"])
@@ -177,16 +177,16 @@ class Application(object):
                     excluded_count += 1
                     continue
 
-                prov = watch_providers()
-                prov_list = prov.providers(movie.id)
-                if fil["exclude_providers_for_country"] not in prov_list["results"]:
-                    logging.debug("{} will not be added to the Trakt list because there aren't a country that match configuration: {}".format(movie.title,  fil["exclude_providers_for_country"] ))
-                    excluded_count += 1
-                    continue
-
-                comps = [c["provider_name"] for c in prov_list["results"][ fil["exclude_providers_for_country"] ].get("flatrate", None)]
-                if comps:
-                    if len(intersection(fil["exclude_providers"], comps)) > 0:
+                if fil["exclude_providers_for_country"]: 
+                    prov = watch_providers()
+                    prov_list = prov.providers(movie.id)
+                    if fil["exclude_providers_for_country"] not in prov_list.get("results", {}):
+                        logging.debug("{} will not be added to the Trakt list because there aren't a country that match configuration: {}".format(movie.title,  fil["exclude_providers_for_country"] ))
+                        excluded_count += 1
+                        continue
+                    logging.debug(pprint.pformat(prov_list["results"][fil["exclude_providers_for_country"] ], indent=2))
+                    comps = [c["provider_name"] for c in prov_list["results"][ fil["exclude_providers_for_country"] ].get("flatrate", [])]
+                    if comps and len(intersection(fil["exclude_providers"], comps)) > 0:
                         logging.debug("{} will not be added to the Trakt list because provider is excluded: {}".format(movie.title, comps))
                         excluded_count += 1
                         continue

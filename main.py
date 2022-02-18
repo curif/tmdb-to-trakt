@@ -106,38 +106,40 @@ class Application(object):
         details = account.details()
         logging.info("You are logged in to tmdb as %s. Your account ID is %s." % (details.username, details.id))
 
-        logging.info("Retrieve watched from trakt")
-        # ('imdb', 'tt1815862'): <Movie 'After Earth' (2013)>
-        watched = {}
-        Trakt['sync/watched'].movies(watched, exceptions=True)
-        #pp.pprint(watched)
+        def getImdbPK(movie):
+            for k in movie.keys:
+                if k[0] == 'imdb':
+                    return k[1]
+            return None
 
-        tmdb_in_watched = [
-                int(id[1])
-                for k,m in watched.items()
-                for id in m.keys
-                if id[0] == "tmdb"
-        ]
-        assert(len(watched)==len(tmdb_in_watched))
-        #logging.debug("Movies tmdb ids of watched movies: {}".format(pprint.pformat(tmdb_in_watched)))
+        logging.info("Retrieve watched from trakt")
+        watched = Trakt['sync/watched'].movies(exceptions=True)
+
         logging.info("Retrieve movies in list [{}]".format(config["trakt"]["list"]))
         trakt_in_list = Trakt['users/*/lists/*'].items(
                             config["trakt"]["user"],
                             config["trakt"]["list"],
                             media="movies",
+                            pagination=True,
                             exceptions=True
                             )
-        #pp.pprint(trakt_in_list)
         if not trakt_in_list:
             raise(Exception("can't retrieve list movies from Trakt"))
-        
-        tmdb_in_list = [
+
+        watched_or_listed = [
+            int(id[1])
+            for movie in watched.values()
+            for id in movie.keys
+            if id[0] == "tmdb"
+        ]
+        watched_or_listed.extend([
                 int(id[1])
                 for m in trakt_in_list
                 for id in m.keys
-                if id[0] == "tmdb"
-        ]
-        #logging.debug("Tmdb list of movies in list {}".format(pprint.pformat(tmdb_in_list)))
+                if id[0] == "tmdb" and int(id[1]) not in watched_or_listed
+        ])
+        watched_or_listed.sort()
+        logging.info("{} movies watched or in list".format(len(watched_or_listed)))
 
         genre = Genre()
         mov = Movie()
@@ -147,34 +149,40 @@ class Application(object):
         excluded_count = 0
 
         for fil in config["filters"]["filter_list"]:
-            discovered = discover.discover_movies( {
+            discovered = discover.discover_movies({
                 "primary_release_date.gte": "{}-01-01".format(config["filters"]["from_year"]),
                 "vote_count.gte": fil["imdb_people"],
-                "vote_average.gte": fil["imdb_range"][0],  
-                "vote_average.lte": fil["imdb_range"][1],  
-                "sort_by": "release_date.desc",  
-                })
+                "vote_average.gte": fil["imdb_range"][0],
+                "vote_average.lte": fil["imdb_range"][1],
+                "sort_by": "release_date.desc",
+            })
             logging.info("{} movies discovered in votes range: {}".format(len(discovered), fil["imdb_range"]))
             for movie in discovered:
-                #ext_id = mov.external_ids(movie.id)
-                #if "imdb" not in ext_id:
-                #    continue
 
-                if movie.id in tmdb_in_list or movie.id in tmdb_in_watched:
-                    logging.debug("{} already watched or marked in the list. Excluded.".format(movie.title))
+                if movie.id in watched_or_listed:
+                    logging.debug("{} already watched or is in the list. Excluded.".format(movie.title))
                     excluded_count += 1
                     continue
-                
+
+                """
+                The genres currently available in the movie section are: 
+                Action, Adventure, Animation, Comedy, Crime, Documentary, Drama, 
+                Family, Fantasy, History, Horror, Music, Mystery, Romance, Science Fiction, Thriller, 
+                TV Movie, War, and Western.
+                https://www.themoviedb.org/bible/movie/59f3b16d9251414f20000006#:~:text=The%20genres%20currently%20available%20in,Movie%2C%20War%2C%20and%20Western.&text=%22Animation%22%20and%20%22Documentary%22%20should%20be%20added%20when%20relevant.
+                """
                 movie_genres = [
-                        gen.name
-                        for gen in genres
-                        if gen.id in movie.genre_ids
+                    gen.name
+                    for gen in genres
+                    if gen.id in movie.genre_ids
                 ]
-                if not ((len(fil["include_genres"]) == 0 or 
-                        len(intersection(movie_genres , fil["include_genres"])) > 0 ) \
-                      and ( len(fil["exclude_genres"]) == 0 or 
-                              len(intersection(movie_genres, fil["exclude_genres"])) == 0 )):
-                    logging.debug("{} will not be added to the Trakt list because genres don't match: {}".format(movie.title, movie_genres ))
+                if not ((len(fil["include_genres"]) == 0 or
+                         len(intersection(movie_genres, fil["include_genres"])) > 0)
+                        and (len(fil["exclude_genres"]) == 0 or
+                             len(intersection(movie_genres, fil["exclude_genres"])) == 0)):
+                    logging.debug(
+                        "{} will not be added to the Trakt list because genres don't match: {}".format(movie.title,
+                                                                                                       movie_genres))
                     excluded_count += 1
                     continue
 
@@ -185,7 +193,7 @@ class Application(object):
                         logging.debug("{} will not be added to the Trakt list because there aren't a country that match configuration: {}".format(movie.title,  fil["exclude_providers_for_country"] ))
                         excluded_count += 1
                         continue
-                    logging.debug(pprint.pformat(prov_list["results"][fil["exclude_providers_for_country"] ], indent=2))
+                    logging.debug(pprint.pformat(prov_list["results"][fil["exclude_providers_for_country"]], indent=2))
                     comps = [c["provider_name"] for c in prov_list["results"][ fil["exclude_providers_for_country"] ].get("flatrate", [])]
                     if comps and len(intersection(fil["exclude_providers"], comps)) > 0:
                         logging.debug("{} will not be added to the Trakt list because provider is excluded: {}".format(movie.title, comps))
@@ -200,13 +208,13 @@ class Application(object):
 
         logging.info("{} excluded by config filters".format(excluded_count))
         if len(tmdb_list) > 0:
-            to_add = { "movies": [ 
+            to_add = { "movies": [
                        {"ids": {
                            'tmdb': tmdb_list
                            }
-                       }                 ]
+                       }]
             }
-            logging.info("Add {} movies to list [{}]".format( len(tmdb_list), config["trakt"]["list"]))
+            logging.info("Add {} movies to list [{}]".format(len(tmdb_list), config["trakt"]["list"]))
             logging.debug(pprint.pformat(to_add))
             result = Trakt['users/*/lists/*'].add(
                                 config["trakt"]["user"],
